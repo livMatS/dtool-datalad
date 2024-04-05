@@ -17,6 +17,7 @@ from dtoolcore.utils import (
     handle_to_osrelpath,
 )
 from dtoolcore.filehasher import FileHasher, md5sum_hexdigest
+from dtoolcore.storagebroker import BaseStorageBroker
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +59,20 @@ Per item descriptive metadata: .dtool/overlays/
 Dataset key/value pairs metadata: .dtool/annotations/
 Dataset tags metadata: .dtool/tags/
 """
+
+
+def _get_abspath_from_uri(uri):
+    """Return abspath.
+    """
+    logger.debug("In _get_abspath_from_uri")
+    logger.debug("_get_abspath_from_uri.input_uri: {}".format(uri))
+    parse_result = generous_parse_uri(uri)
+    path = parse_result.path
+    if IS_WINDOWS:
+        path = unix_to_windows_path(path)
+    abspath = os.path.abspath(path)
+    logger.debug("_get_abspath_from_uri.return: {}".format(abspath))
+    return abspath
 
 
 class DataLadStorageBroker(BaseStorageBroker):
@@ -154,7 +169,7 @@ class DataLadStorageBroker(BaseStorageBroker):
 
     @classmethod
     def generate_uri(cls, name, uuid, base_uri):
-        logger.debug("In DiskStorageBroker.generate_uri...")
+        logger.debug("In DataladStorageBroker.generate_uri...")
         parsed_uri = generous_parse_uri(base_uri)
         base_dir_path = parsed_uri.path
         if IS_WINDOWS:
@@ -245,7 +260,7 @@ class DataLadStorageBroker(BaseStorageBroker):
     def get_hash(self, handle):
         """Return the hash."""
         fpath = self._fpath_from_handle(handle)
-        return DiskStorageBroker.hasher(fpath)
+        return DataLadStorageBroker.hasher(fpath)
 
     def has_admin_metadata(self):
         """Return True if the administrative metadata exists.
@@ -415,7 +430,7 @@ class DataLadStorageBroker(BaseStorageBroker):
         for d in os.listdir(self._abspath):
             if d not in allowed:
                 msg = "Rogue content in base of dataset: {}".format(d)
-                raise(DiskStorageBrokerValidationWarning(msg))
+                raise(DataLadStorageBrokerValidationWarning(msg))
 
     def post_freeze_hook(self):
         """Post :meth:`dtoolcore.ProtoDataSet.freeze` cleanup actions.
@@ -423,7 +438,7 @@ class DataLadStorageBroker(BaseStorageBroker):
         This method is called at the end of the
         :meth:`dtoolcore.ProtoDataSet.freeze` method.
 
-        In the :class:`dtoolcore.storage_broker.DiskStorageBroker` it removes
+        In the :class:`dtoolcore.storage_broker.DataLadStorageBroker` it removes
         the temporary directory for storing item metadata fragment files.
         """
         if os.path.isdir(self._metadata_fragments_abspath):
